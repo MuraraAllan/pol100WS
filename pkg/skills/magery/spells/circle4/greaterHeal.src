@@ -1,0 +1,62 @@
+use uo;
+use os;
+use util;
+
+include ":attributes:attributes";
+include ":magery:spells";
+include "include/client";
+include "include/sounds";
+include ":magery:spellUtils";
+program cast_heal( parms )
+var caster := parms[1];
+var info := parms[2];
+var cast_on;
+cast_on := MS_Target(caster, info.targ, "Selecione um alvo.", TGTOPT_CHECK_LOS+TGTOPT_HELPFUL);
+if (!cast_on) // If no cast_on then get cast_on from parms[4]. Used mostly for NPC casting.
+    cast_on := parms[4];
+endif
+if (!cast_on)
+    SendSysMessage (caster, "Cancelado.", color := 33);
+    return 0;
+endif
+if ( !MS_MobileCheck(caster, cast_on) )
+    return 0;
+endif
+var manaCost := parms[5];
+  if (!useMana(caster, manaCost)) 
+    SendSysMessage(caster, "You don't have enough mana to cast that spell!");
+    return 0;
+  endif
+PlayMovingEffect(caster, cast_on, FX_SPARK_EFFECT, 7, 0x10);
+PlaySoundEffect(cast_on, SFX_SPELL_HEAL);
+var magery := GetAttribute(caster, MAGERY) / 20;
+var inscription := GetAttribute(caster, INSCRIPTION) / 12;
+Broadcast(inscription);
+if((getobjproperty(caster,"guild_id")) && (!getobjproperty(cast_on,"guild_id")) ||
+(getobjproperty(caster,"guild_id") != getobjproperty(cast_on,"guild_id")) ||
+(!getobjproperty(caster,"guild_id")) && (getobjproperty(cast_on,"guild_id")))
+caster.SetCriminal(1);
+endif
+var heal := RandomDiceRoll("5d2+2") + magery + RandomInt(magery) + inscription + 
+RandomInt(magery) + RandomInt(inscription) + RandomInt(inscription) 
++ RandomDiceRoll("2d2+1");
+HealDamage(cast_on, heal);
+PlayObjectCenteredEffect(cast_on, FX_SPARK_EFFECT, 7, 0x10);
+PlaySoundEffect(cast_on, SFX_SPELL_HEAL);
+PrintTextAbove(cast_on, " " + heal + " ", FONT_SMALL_LIGHT, 1153);
+
+
+return 1;
+/*
+  var healed := RandomDiceRoll("1d3");
+  healed := CInt(GetAttribute(caster, MAGERY)/2) + healed;
+  SendSysMessage(caster, "You healed " + healed + " damage.");
+  if(cast_on.isA(POLCLASS_NPC))
+    healed := healed * 2;
+  endif
+  HealDamage(cast_on, healed);
+  */
+  PlayObjectCenteredEffect( cast_on, FX_SPARK_EFFECT, 7, 0x10 );
+  PlaySoundEffect( cast_on, SFX_SPELL_GREATER_HEAL );
+  
+endprogram

@@ -1,0 +1,58 @@
+////////////////////////////////////
+// Need to get this compatible with Distro or else leave alone.
+
+use uo;
+use os;
+use cfgfile;
+
+include ":attributes:attributes";
+include ":magery:spells";
+include ":magery:spellUtils";
+include "include/client";
+include "include/sounds";
+
+program cast_protection(parms)
+    var caster := parms[1];
+    var info := parms[2];
+    var cast_on;
+    cast_on := MS_Target(caster, info.targ, "Selecione um alvo.", TGTOPT_CHECK_LOS+TGTOPT_HELPFUL);
+    if (!cast_on) // If no cast_on then get cast_on from parms[4]. Used mostly for NPC casting.
+        cast_on := parms[4];
+    endif
+    if (!cast_on)
+        SendSysMessage (caster, "Cancelado.", color := 33);
+        return 0;
+    endif
+    if ( !MS_MobileCheck(caster, cast_on) )
+        return 0;
+    endif
+
+  PlaySoundEffect(cast_on, SFX_SPELL_PROTECTION);
+  PlayObjectCenteredEffect(cast_on, FX_BLESS_EFFECT, 7,7);
+  
+  var magery := GetAttribute(caster, MAGERY) / 20;
+  var insc := GetAttribute(caster, INSCRIPTION) / 11;
+  var mod_amount := RandomDiceRoll("3d2") + magery +randomInt(magery) + insc;
+  var duration := GetModDuration(magery);
+  var itmcfg := ReadConfigFile(":*:itemdesc");
+  var arpoints := 0;
+  var manaCost := parms[5];
+  if (!useMana(caster, manaCost)) 
+    SendSysMessage(caster, "You don't have enough mana to cast that spell!");
+    return 0;
+  endif
+  if (!CanMod(cast_on, "ar"))
+	  SendSysMessage(caster,"O alvo ja esta sobre influenza!");
+	return;
+  endif
+  foreach thing in ListEquippedItems(cast_on)
+    arpoints := arpoints + (CInt(itmcfg[thing.objtype].AR) / 12);
+  endforeach
+  if(mod_amount > arpoints)
+    mod_amount := mod_amount - arpoints;
+  else
+    mod_amount := 0;
+  endif
+
+  DoTempMod(cast_on, "ar", mod_amount, duration);
+endprogram

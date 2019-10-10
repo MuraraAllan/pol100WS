@@ -1,0 +1,58 @@
+use uo;
+use os;
+use cfgfile;
+use util;
+
+include ":attributes:attributes";
+include "danos";
+//include ":poisonwatcher:poisons";
+var cFile := ReadConfigFile(":combat:itemdesc");
+
+function rootWeaponState(character);
+  //should get layer 1 Weapon
+  //should search for config file
+  //should register weapon.config
+  //should get layer 2 weapon
+  //should check defenderHasShield
+  //should register character.shield
+  var equiped := GetEquipmentByLayer(character, 0x01);
+  var weapon := dictionary {
+    "objtype" -> equiped.objtype
+  };
+  if (!weapon.objtype)
+    weapon.objtype := "0x1F020";
+  endif
+
+  var weaponConfig := FindConfigElem(cFile, weapon.objtype);
+  weapon.config := weaponConfig;
+  var shield := GetEquipmentByLayer(character, 0x02);
+  var shieldConfig := FindConfigElem(cFile, shield.objtype);
+  if (!shield)
+    return;
+  endif
+  if (shieldConfig.shield == 1)
+    character.shield := shield;
+  endif
+  return weapon;
+endfunction
+
+//var npccfgfile := ReadConfigFile("::npcdesc");
+program OnHit(params)
+  // Broadcast(params);
+  var attacker := params[0];
+  attacker.weapon := rootWeaponState(attacker);
+  var defender := params[1];
+  defender.weapon := rootWeaponState(defender);
+
+  finishHit(attacker, defender);
+endprogram
+//attack structure
+//dmg : 50
+//chanceHit
+//hasClassSpecial
+//hasPowerBlow
+function finishHit(attacker, defender);
+  SendSysMessage(attacker, "Your weapon damage"+attacker.weapon.dmg);
+  // ApplyRawDamage(defender, dano);
+  //PrintTextAbove(defender, " " + 0 + " ", FONT_SMALL_LIGHT,38);
+endfunction

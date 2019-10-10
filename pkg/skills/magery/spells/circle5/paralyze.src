@@ -1,0 +1,108 @@
+use uo;
+use os;
+
+include ":attributes:attributes";
+include ":magery:spells";
+include ":magery:spellUtils";
+
+program cast_paralyze( parms )
+
+  var caster := parms[1];
+  var info := parms[2];
+  var cast_on := MS_Target(caster, info.targ, "Selecione um alvo.", TGTOPT_CHECK_LOS+TGTOPT_HARMFUL);
+  var magery := GetAttribute(caster, MAGERY) / 10;
+  var eval := GetAttribute(caster, EVALUATING_INTELLIGENCE) / 10;
+  var mod_amount := RandomDiceRoll("5d2+1")+magery+RandomInt((magery*0.3))+eval
+  +RandomInt(eval);
+  var prevtime := ReadGameClock() + 8;
+  if (CheckLostFocus({ prevtime , caster }) == 1)
+    return 0;
+  endif
+  if (!cast_on) // If no cast_on then get cast_on from parms[4]. Used mostly for NPC casting.
+      cast_on := parms[4];
+  endif
+  if (!cast_on)
+      SendSysMessage (caster, "Cancelado.", color := 33);
+      return 0;
+  endif
+  if ( !MS_MobileCheck(caster, cast_on) )
+      return 0;
+  endif
+var manaCost := parms[5];
+  if (!useMana(caster, manaCost)) 
+    SendSysMessage(caster, "You don't have enough mana to cast that spell!");
+    return 0;
+  endif
+
+  var timer := (magery+eval)*190;
+  SetObjProperty(cast_on, "LastHit", {caster.name,caster.serial, "paralyze" });
+  PlayMovingEffect( caster, cast_on, FX_CURSE_EFFECT, 7,0x10 );
+
+  PlaySoundEffect( cast_on, SFX_SPELL_PARALYZE );
+  cast_on := reflectSpell({ caster, cast_on, 60, FX_EXPLODE_3, SFX_SPELL_EXPLOSION, 1000 });
+  SetObjProperty(cast_on, "LastHit", { caster.name,caster.serial, "magic arrow" });
+  if(caster == cast_on)
+    cast_on.setparalyzed(1);
+    Detach();
+    sleepMS(timer);
+    cast_on.setparalyzed(0);
+  else
+    SetObjProperty(cast_on, "Lastataque", Readgameclock() + 5);
+    var boolRes := ResistSpell({ caster, cast_on, 34 });
+    if (boolRes == 1)
+      SetObjProperty(cast_on, "resist", 1);
+      SendSysMessage(cast_on, "Voce sente seu corpo resistindo a magia!", 9,89);
+      PlaySoundEffect(cast_on, SFX_SPELL_WEAKEN);
+      PlayObjectCenteredEffect(cast_on, FX_CURSE_EFFECT, 5,5);
+    else
+    cast_on.setparalyzed(1);
+    Detach();
+    sleepMS(timer);
+    cast_on.setparalyzed(0);
+    endif
+  endif
+return 1;
+
+
+
+endprogram
+
+function pararesist(circle, caster, cast_on, amt, info)
+  var magery := CInt(GetAttribute(caster, MAGERY));
+  var evalint := CInt(GetAttribute(caster, EVALUATING_INTELLIGENCE));
+  var resist := CInt(GetAttribute(cast_on, RESISTING_SPELLS));
+  var chk1 := (resist / 5);
+  var chk2 := resist - (((magery - 20) / 5) + (circle * 5));
+  if(chk1 < 1)
+    chk1 := 1;
+  endif
+  if(chk2 < 1)
+    chk2 := 1;
+  endif
+  var diff := 0;
+  if(chk1 > chk2)
+    diff := chk1;
+  else
+    diff := chk2;
+  endif
+  var points := getresistpoints(info.circle, cast_on, SKILLID_RESISTING_SPELLS);
+  if(cast_on.dead)
+    return 0;
+  endif
+  if((RandomInt(99) + 1) <= diff)
+	SendSysMessage(cast_on, "You feel yourself resisting magical energy!");
+	PlaySoundEffect(cast_on, SFX_SPELL_WEAKEN);
+	PlayObjectCenteredEffect(cast_on, FX_CURSE_EFFECT, 5,5);
+	AwardRawSkillPoints(cast_on, SKILLID_RESISTING_SPELLS, points);
+	amt := 0;
+	return amt;
+  endif
+  var modamt := 1;
+  if(resist > evalint)
+    modamt := (1 + ((evalint - resist) / 200.0));
+  elseif(evalint > resist)
+    modamt := (1 + ((evalint - resist) / 500.0));
+  endif
+  amt := (amt * modamt);
+  return CInt(amt);
+endfunction

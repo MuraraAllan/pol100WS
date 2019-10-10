@@ -1,0 +1,13 @@
+use uo;
+use os;
+use cfgfile;
+
+var npccfgfile := ReadConfigFile( "::npcdesc" );
+
+
+program WrestlingHitScript(attacker, defender, weapon, armor, basedamage, rawdamage)
+Broadcast("Wrestling hit script");
+weapon.hitscript := "mainHitScript";
+return;
+
+endprogram

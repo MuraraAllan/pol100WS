@@ -1,0 +1,73 @@
+use uo;
+use util;
+use os;
+
+include ":attributes:attributes";
+include ":magery:spells";
+include ":magery:spellUtils";
+include "include/client";
+include "include/sounds";
+include ":damage:damage";
+include ":magery:spellUtils";
+program cast_lightning( parms )
+  
+  var caster := parms[1];
+  var info := parms[2];
+  
+  var cast_on;
+  var magery := GetAttribute(caster, MAGERY) / 20;
+  var eval := GetAttribute(caster, EVALUATING_INTELLIGENCE) / 13;
+  var mod_amount := RandomDiceRoll("3d2+1")+RandomInt(magery)+magery+RandomInt(eval)+eval;
+  if (mod_amount < 4)
+    mod_amount := 4;
+  endif
+  cast_on := MS_Target(caster, info.targ, "Selecione um alvo", TGTOPT_CHECK_LOS+TGTOPT_HARMFUL);
+  var prevtime := ReadGameClock() + 8;
+  if (CheckLostFocus({ prevtime , caster }) == 1)
+    return 0; 
+  endif
+  if (!cast_on) // If no cast_on then get cast_on from parms[4]. Used mostly for NPC casting.
+    cast_on := parms[4];
+  endif
+  if (!cast_on)
+    SendSysMessage (caster, "Cancelado.", color := 33);
+    return 0;
+  endif
+  if ( !MS_MobileCheck(caster, cast_on) )
+    return 0;
+  endif
+  var manaCost := parms[5];
+  if (!useMana(caster, manaCost)) 
+    SendSysMessage(caster, "You don't have enough mana to cast that spell!");
+    return 0;
+  endif
+  PlaySoundEffect(cast_on, SFX_SPELL_LIGHTNING);
+  PlayLightningBoltEffect(cast_on);
+   
+  cast_on := reflectSpell({ caster, cast_on, 50, "LIGHTNINGBOLT", SFX_SPELL_LIGHTNING, 800 });
+
+    if(caster == cast_on)
+    ApplyRawDamage(cast_on, mod_amount);
+    PrintTextAbove(cast_on, " " + mod_amount + " ", FONT_SMALL_LIGHT, 38);
+    SetObjProperty(cast_on, "LastHit", { caster.name,caster.serial, "magic arrow" });
+    SetObjProperty(cast_on, "Lastataque", Readgameclock() + 5);
+  else
+    SetObjProperty(cast_on, "LastHit", { caster.name,caster.serial, "magic arrow" });
+    SetObjProperty(cast_on, "Lastataque", Readgameclock() + 5);
+    var boolRes := ResistSpell({ caster, cast_on, 5 });
+    if (boolRes == 1)
+      SetObjProperty(cast_on, "resist", 1);
+      SendSysMessage(cast_on, "Voce sente seu corpo resistindo a magia!", 9,89);
+      PlaySoundEffect(cast_on, SFX_SPELL_WEAKEN);
+      PlayObjectCenteredEffect(cast_on, FX_CURSE_EFFECT, 5,5);
+      ApplyRawDamage(cast_on, mod_amount/2);
+      PrintTextAbove(cast_on, " " + mod_amount/2 + " ", FONT_SMALL_LIGHT, 38);
+    else
+      ApplyRawDamage(cast_on, mod_amount);
+      PrintTextAbove(cast_on, " " + mod_amount + " ", FONT_SMALL_LIGHT, 38);
+    endif
+  endif
+	return 1;
+  
+  
+endprogram

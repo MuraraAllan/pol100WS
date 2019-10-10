@@ -1,0 +1,13 @@
+use uo;
+use os;
+use util;
+
+include ":attributes:attributes";
+include ":magery:spells";
+include "include/client";
+include "include/sounds";
+
+program cast_FEEBLEMIND( parms )
+  return 1;
+
+endprogram

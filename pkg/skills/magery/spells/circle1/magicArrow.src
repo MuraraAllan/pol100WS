@@ -1,0 +1,89 @@
+use uo;
+use cfgfile;
+
+include ":attributes:attributes";
+include "include/sounds";
+include "include/skills";
+include ":damage:damage";
+include ":magery:spellUtils";
+include ":magery:spells";
+
+
+program cast_magicarrow( parms )
+  var caster := parms[1];
+  var info := parms[2];
+  
+  var cast_on;
+  var magery := GetAttribute(caster, MAGERY) / 50;
+  var eval := GetAttribute(caster, EVALUATING_INTELLIGENCE) / 20;
+  var mod_amount := RandomDiceRoll("2d2")+RandomInt(magery)+RandomInt(eval)+eval;
+  if (mod_amount < 4)
+    mod_amount := 4;
+  endif
+  cast_on := MS_Target(caster, info.targ, "Selecione um alvo", TGTOPT_CHECK_LOS+TGTOPT_HARMFUL);
+  var prevtime := ReadGameClock() + 8;
+  if (CheckLostFocus({ prevtime , caster }) == 1)
+    return 0;
+  endif
+  if (!cast_on) // If no cast_on then get cast_on from parms[4]. Used mostly for NPC casting.
+    cast_on := parms[4];
+  endif
+  if (!cast_on)
+    SendSysMessage (caster, "Cancelado.", color := 33);
+    return 0;
+  endif
+  if ( !MS_MobileCheck(caster, cast_on) )
+    return 0;
+  endif
+  var manaCost := parms[5];
+  if (!useMana(caster, manaCost)) 
+    SendSysMessage(caster, "You don't have enough mana to cast that spell!");
+    return 0;
+  endif
+  PlayMovingEffect( caster, cast_on, FX_MAGIC_ARROW, 5, 1 );
+  PlaySoundEffect( caster, SFX_SPELL_MAGIC_ARROW );
+  cast_on := reflectSpell({ caster, cast_on, 30, FX_MAGIC_ARROW, SFX_SPELL_MAGIC_ARROW, 800 });
+
+
+
+  if(caster == cast_on)
+    ApplyRawDamage(cast_on, mod_amount);
+    PrintTextAbove(cast_on, " " + mod_amount + " ", FONT_SMALL_LIGHT, 38);
+    SetObjProperty(cast_on, "Lastataque", Readgameclock() + 5);
+    SetObjProperty(cast_on, "LastHit", { caster.name,caster.serial, "magic arrow" });
+  else
+    SetObjProperty(cast_on, "Lastataque", Readgameclock() + 5);
+    SetObjProperty(cast_on, "LastHit", { caster.name,caster.serial, "magic arrow" });
+
+    if (ResistSpell({ caster, cast_on, 5 }) == 1)
+      SetObjProperty(cast_on, "resist", 1);
+      SendSysMessage(cast_on, "Voce sente seu corpo resistindo a magia!", 9,89);
+      PlaySoundEffect(cast_on, SFX_SPELL_WEAKEN);
+      PlayObjectCenteredEffect(cast_on, FX_CURSE_EFFECT, 5,5);
+      ApplyRawDamage(cast_on, mod_amount/2);
+      PrintTextAbove(cast_on, " " + mod_amount/2 + " ", FONT_SMALL_LIGHT, 38);
+    else
+      ApplyRawDamage(cast_on, mod_amount);
+      PrintTextAbove(cast_on, " " + mod_amount + " ", FONT_SMALL_LIGHT, 38);
+    endif
+  endif
+	return 1;
+
+/*
+  PlayMovingEffect( caster, cast_on, FX_MAGIC_ARROW, 5, 1 );
+  PlaySoundEffect( caster, SFX_SPELL_MAGIC_ARROW );
+  var dmg := RandomDiceRoll("1d8");
+  if(Reflected(cast_on))
+	PlayMovingEffect( cast_on, caster, FX_MAGIC_ARROW, 5, 1 );
+	PlaySoundEffect( cast_on, SFX_SPELL_MAGIC_ARROW );
+    ApplyRawDamage( caster, Resisted(info.circle,caster,cast_on,dmg) );
+  else
+    if(GetHp(cast_on) >= 1)
+	  SetObjProperty(cast_on, "LastHit", {caster.name,caster.serial, "magic arrow" });
+      if(cast_on.isA(POLCLASS_NPC))
+        dmg := dmg * 2;
+      endif
+      ApplyRawDamage(cast_on, Resisted(info.circle,caster,cast_on,dmg));
+    endif
+  endif*/
+endprogram

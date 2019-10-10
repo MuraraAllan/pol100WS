@@ -1,0 +1,13 @@
+use uo;
+use os;
+use cfgfile;
+
+include ":attributes:attributes";
+
+program shilskill()
+
+endprogram
+
+exported function ShilCheckSkill(who, skillid, difficulty, points)
+
+endfunction

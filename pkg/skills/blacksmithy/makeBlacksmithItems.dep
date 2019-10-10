@@ -1,0 +1,14 @@
+C:\ORIOON PRO SHARD\pkg\skills\blacksmithy\makeBlacksmithItems.src
+C:/ORIOON PRO SHARD/pkg/utils/gumps/include/gumps.inc
+C:/ORIOON PRO SHARD/pkg/systems/attributes/include/attributes.inc
+C:/ORIOON PRO SHARD/scripts/include/client.inc
+C:/ORIOON PRO SHARD/scripts/include/eventID.inc
+C:/ORIOON PRO SHARD/pkg/packethooks/SkillLocks/include/common.inc
+C:/ORIOON PRO SHARD/pkg/utils/datafile/include/datafile.inc
+C:/ORIOON PRO SHARD/scripts/include/gumpUtil.inc
+C:/ORIOON PRO SHARD/scripts/include/dist.inc
+C:/ORIOON PRO SHARD/scripts/util/repair.inc
+C:/ORIOON PRO SHARD/scripts/include/objtype.inc
+C:/ORIOON PRO SHARD/scripts/include/canAccess.inc
+C:/ORIOON PRO SHARD/scripts/include/toolWear.inc
+C:/ORIOON PRO SHARD/scripts/include/yesno.inc

@@ -1,0 +1,43 @@
+use uo;
+use os;
+
+include ":magery:spells";
+include ":damage:damage";
+include ":magery:spellUtils";
+program cast_reflect( parms )
+  var caster := parms[1];
+  var chk := CInt(GetObjProperty(caster, "delayreflect"));
+  var currentMr := GetObjProperty(caster, "mr");
+  
+  if (currentMr > 0 && currentMr < 30)
+    SetObjProperty(caster, "mr", 0);
+  endif
+  if(!chk)
+    chk := CInt(ReadGameClock() - 15);
+  endif
+  var d := chk - ReadGameClock();
+  if(chk >= ReadGameClock())
+    SendSysMessage(caster, "Voce precisa esperar + "+ d +" segundos para dar reflect novamente",9,89);
+    return;
+  endif
+  var magery := GetAttribute(caster, MAGERY) / 3;
+  var insc   := GetAttribute(caster, INSCRIPTION) / 4;
+var manaCost := parms[5];
+  if (!useMana(caster, manaCost)) 
+    SendSysMessage(caster, "You don't have enough mana to cast that spell!");
+    return 0;
+  endif
+  var mr := RandomInt((magery/2)) + RandomInt((insc)) + insc + magery + RandomDiceRoll("10d4+6");
+  
+  currentMr := GetObjProperty(caster, "mr");
+  if(currentMr > 0)
+	  SendSysMessage(caster, "Voce Ja Esta protegido por uma aura antimagia",9,90);
+	  return 0;
+  else
+    PlaySoundEffect(caster, 0x1ea);
+    PlayObjectCenteredEffect( caster, FX_SPARK_EFFECT, 10,10);
+    SetObjProperty(caster, "mr", mr);
+    SetObjProperty(caster, "delayreflect", ReadGameClock() + 80);
+    Sendsysmessage(caster, " Mr Power: " + mr + " ", 9,20);  
+  endif
+endprogram

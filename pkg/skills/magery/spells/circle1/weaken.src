@@ -1,0 +1,61 @@
+use os;
+use uo;
+use util;
+
+include ":attributes:attributes";
+include ":magery:spells";
+
+include "include/client";
+include "include/sounds";
+include ":magery:spellUtils";
+
+program cast_WEAKEN( parms )
+var caster := parms[1];
+var info := parms[2];
+var cast_on;
+cast_on := MS_Target(caster, info.targ, "Selecione um alvo.", TGTOPT_CHECK_LOS+TGTOPT_HARMFUL);
+if (!cast_on) // If no cast_on then get cast_on from parms[4]. Used mostly for NPC casting.
+    cast_on := parms[4];
+endif
+if (!cast_on)
+    SendSysMessage (caster, "Cancelado.");
+    return 0;
+endif
+if ( !MS_MobileCheck(caster, cast_on) )
+    return 0;
+endif
+
+PlayMovingEffect( caster, cast_on, FX_CURSE_EFFECT, 7,7);
+SetObjProperty(cast_on, "LastHit", {caster.name,caster.serial, "clumsy" });
+cast_on := reflectSpell({ caster, cast_on, 30, FX_CURSE_EFFECT, SFX_SPELL_CURE, 800 });
+
+if(!CanMod(cast_on, "str"))
+  SendSysMessage(caster,"Alvo ja sofre influencia!");
+  return;
+endif
+
+var manaCost := parms[5];
+if (!useMana(caster, manaCost)) 
+  SendSysMessage(caster, "You don't have enough mana to cast that spell!");
+  return 0;
+endif
+
+var magery := (GetAttribute(caster, MAGERY) * 90 / 100) + (GetAttribute(caster, EVALUATING_INTELLIGENCE) * 30 / 100);
+var mod_amount := GetModAmount( magery );
+var duration := GetModDuration( magery ) / 10;
+
+if(caster == cast_on)
+  DoTempMod(cast_on, "str", 0 - mod_amount, duration);
+else
+  SetObjProperty(cast_on, "Lastataque", Readgameclock() + 5);
+  var boolRes := ResistSpell({ caster, cast_on, 5 });
+  if (boolRes == 1)
+    SetObjProperty(cast_on, "resist", 1);
+    SendSysMessage(cast_on, "Voce sente seu corpo resistindo a magia!", 9,89);
+    PlaySoundEffect(cast_on, SFX_SPELL_WEAKEN);
+    PlayObjectCenteredEffect(cast_on, FX_CURSE_EFFECT, 5,5);
+  else
+    DoTempMod(cast_on, "str", 0 - mod_amount, duration);
+  endif
+endif
+endprogram

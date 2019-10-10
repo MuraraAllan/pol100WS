@@ -1,0 +1,24 @@
+use uo;
+use os;
+use basic;
+use cfgfile;
+
+include ":attributes:attributes";
+
+
+
+exported function myAttack(attacker, defender)
+
+
+	var res := {};
+  // var test := run_script_to_completion(":combathook:onHit", {attacker, defender});
+	return 0;
+
+endfunction
+
+
+program combathook()
+
+	print("SystemHook: Combat 1.0 enabled!");
+
+endprogram
